@@ -169,7 +169,7 @@ PRs welcome. Please run `npm test` in `/contracts` before submitting.
 
 ## Author
 
-- **Spinoza** — [spinoza.zola@outlook.com](mailto:spinoza.zola@outlook.com)
+- **Spinoza**
 
 ## License
 
