@@ -2,10 +2,10 @@
 export const DEPLOYMENT = {
   "network": "litvmTestnet",
   "chainId": 4441,
-  "address": "0x1Da9FB28c6F3B43f4d4487e833873Cf2856b809A",
+  "address": "0xc2B5066E014C7FA38bb6ef52c80E53103281AA98",
   "deployer": "0xF0071AFE9ca99eB21cDDAb933837e6E280BDCB12",
   "feeRecipient": "0xF0071AFE9ca99eB21cDDAb933837e6E280BDCB12",
   "platformFeeBps": 200,
-  "txHash": "0x88fdb071500d5c006a6c77a77bb448e85516813de57860b9b0abad865f59de14",
-  "deployedAt": "2026-05-20T22:41:08.223Z"
+  "txHash": "0xd3ecebb6f1dc4d49637c71661af475e272f57497fb3ae30806657c6fa9ad4702",
+  "deployedAt": "2026-05-21T16:53:21.975Z"
 } as const;

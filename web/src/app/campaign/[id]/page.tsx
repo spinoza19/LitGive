@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -10,36 +10,27 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { parseEther } from "viem";
+import { motion } from "framer-motion";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   CONTRACT_ABI,
   CONTRACT_ADDRESS,
   Campaign,
-  MODE_LABEL,
-  STATUS_LABEL,
   EXPLORER_BASE,
 } from "@/lib/contract";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { TxStatus } from "@/components/TxStatus";
-import { fmtEth, timeLeft, categoryEmoji } from "@/lib/format";
-import { DonationsFeed } from "@/components/DonationsFeed";
-import { ShareButton } from "@/components/ShareButton";
-import { DonationSuccessModal } from "@/components/DonationSuccessModal";
+import { toDisplayCampaign } from "@/lib/display";
+import { useDonationEvents } from "@/lib/events";
+import { GoalProgress } from "@/components/GoalProgress";
+import { DonationItem } from "@/components/DonationItem";
+import { Jazzicon } from "@/components/Jazzicon";
+import { useBlockHeight } from "@/components/BlockHeight";
+import { categoryLabel, formatLTC, shortAddr, timeLeft } from "@/lib/format";
 
-function statusBadge(status: number) {
-  const map: Record<number, string> = {
-    0: "bg-emerald-500/15 text-emerald-300",
-    1: "bg-zinc-500/15 text-zinc-300",
-    2: "bg-sky-500/15 text-sky-300",
-    3: "bg-rose-500/15 text-rose-300",
-  };
-  return map[status] ?? "bg-zinc-500/15 text-zinc-300";
-}
+const PRESETS = [0.01, 0.05, 0.1, 0.5];
 
 export default function CampaignPage() {
   const params = useParams();
   const id = BigInt(params.id as string);
-
-  const { address } = useAccount();
 
   const campaignRead = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -49,449 +40,525 @@ export default function CampaignPage() {
     query: { refetchInterval: 8_000 },
   });
 
-  const feeRead = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "platformFeeBps",
-  });
-
-  const myContribRead = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "contributions",
-    args: address ? [address, id] : undefined,
-    query: { enabled: !!address, refetchInterval: 8_000 },
-  });
-
   const c = campaignRead.data as Campaign | undefined;
-  const feeBps = (feeRead.data as number | undefined) ?? 0;
-  const myContribution = (myContribRead.data as bigint | undefined) ?? 0n;
+  const refetch = () => campaignRead.refetch();
 
-  const refetchAll = () => {
-    campaignRead.refetch();
-    myContribRead.refetch();
-  };
+  const { events: feed } = useDonationEvents(id);
+  const donorCount = useMemo(() => {
+    if (!feed) return 0;
+    return new Set(feed.map((d) => d.donor.toLowerCase())).size;
+  }, [feed]);
 
   if (campaignRead.isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="card animate-pulse h-48" />
-        <div className="card animate-pulse h-32" />
+      <div className="px-6 py-32 text-center">
+        <div className="eyebrow">Reading ledger</div>
+        <h1 className="display-md mt-3">Loading campaign…</h1>
       </div>
     );
   }
-  if (!c) return <div className="text-rose-400">Campaign not found.</div>;
 
-  const isBeneficiary =
-    address && address.toLowerCase() === c.beneficiary.toLowerCase();
+  if (!c || !c.title) {
+    return (
+      <div className="px-6 py-32 text-center">
+        <div className="eyebrow">Issue not found</div>
+        <h1 className="display-lg mt-4">
+          This campaign isn&apos;t on the ledger.
+        </h1>
+        <Link
+          href="/"
+          className="mt-8 inline-block border border-border-strong px-6 py-3 font-mono text-xs uppercase tracking-[0.18em] hover:bg-foreground hover:text-background transition-colors"
+        >
+          Back to directory
+        </Link>
+      </div>
+    );
+  }
 
-  const goalEth = Number(fmtEth(c.goal, 8));
-  const raisedEth = Number(fmtEth(c.raised, 8));
-  const pct = goalEth > 0 ? Math.min(100, (raisedEth / goalEth) * 100) : null;
-  const tl = c.deadline > 0n ? timeLeft(c.deadline) : null;
-  const deadlinePassed = !!tl && tl.passed;
-
-  const campaignUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/campaign/${c.id.toString()}`
-      : `/campaign/${c.id.toString()}`;
-  const shareText = `Support "${c.title}" on @LitecoinVM via LitGive 💚`;
+  const dc = toDisplayCampaign(c, donorCount);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <Link href="/" className="text-xs text-muted hover:text-white">
-          ← Back to campaigns
-        </Link>
-        <ShareButton url={campaignUrl} title={c.title} text={shareText} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="card">
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <div className="min-w-0">
-                <h1 className="text-2xl font-bold">{c.title}</h1>
-                <div className="text-xs text-muted mt-1">
-                  #{c.id.toString()} · {categoryEmoji(c.category)}{" "}
-                  {c.category || "uncategorized"} · {MODE_LABEL[c.mode]}
-                </div>
-              </div>
-              <span className={`badge shrink-0 ${statusBadge(c.status)}`}>
-                {STATUS_LABEL[c.status]}
-              </span>
-            </div>
-
-            {c.imageURI ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={c.imageURI}
-                alt=""
-                className="w-full max-h-96 object-cover rounded-lg border border-border my-4"
-              />
-            ) : (
-              <div className="my-4 h-48 rounded-lg border border-border bg-gradient-to-br from-accent2/40 via-bg to-accent/30 flex items-center justify-center text-6xl">
-                {categoryEmoji(c.category)}
-              </div>
-            )}
-
-            <p className="whitespace-pre-wrap text-sm text-zinc-300 leading-relaxed">
-              {c.description || "—"}
+    <>
+      <header className="border-b border-rule">
+        <div className="px-6 pt-10 pb-6 flex flex-wrap items-center justify-between gap-4 font-mono text-[0.7rem] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Link href="/" className="hover:text-foreground">
+              ← Directory
+            </Link>
+            <span>·</span>
+            <span>Issue №{String(dc.issue).padStart(3, "0")}</span>
+            <span>·</span>
+            <span>{categoryLabel(dc.category)}</span>
+            <span>·</span>
+            <span className="text-foreground">
+              {dc.mode === "AON" ? "All or nothing" : "Keep what you raise"}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="inline-flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-success animate-pulse" />
+              {dc.status === "live" ? "Live" : dc.status}
+            </span>
+            <a
+              href={`${EXPLORER_BASE}/address/${dc.beneficiary}`}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground underline underline-offset-2"
+            >
+              {shortAddr(dc.beneficiary)}
+            </a>
+          </div>
+        </div>
+        <div className="px-6 pb-10">
+          <h1 className="display-xl max-w-5xl">{dc.title}</h1>
+          {dc.excerpt && (
+            <p className="mt-6 max-w-3xl text-xl text-muted-foreground font-display italic leading-snug">
+              {dc.excerpt}
             </p>
-          </div>
-
-          <div className="card">
-            <h3 className="text-sm font-semibold mb-3">Activity</h3>
-            <DonationsFeed campaignId={c.id} limit={20} />
-          </div>
-
-          <div className="card text-xs space-y-2">
-            <Row
-              label="Beneficiary"
-              value={c.beneficiary}
-              href={`${EXPLORER_BASE}/address/${c.beneficiary}`}
-              mono
-            />
-            <Row
-              label="Created"
-              value={new Date(Number(c.createdAt) * 1000).toLocaleString()}
-            />
-            {c.deadline > 0n && (
-              <Row
-                label="Deadline"
-                value={new Date(Number(c.deadline) * 1000).toLocaleString()}
-              />
-            )}
-            <Row
-              label="Withdrawn"
-              value={`${fmtEth(c.withdrawn)} zkLTC (gross)`}
-            />
-            <Row label="Platform fee" value={`${feeBps / 100}%`} />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="card">
-            <div className="text-3xl font-bold">
-              {fmtEth(c.raised, 4)}{" "}
-              <span className="text-sm font-normal text-muted">zkLTC raised</span>
-            </div>
-            {goalEth > 0 && (
-              <div className="text-xs text-muted mt-1">
-                goal {goalEth.toFixed(4)} zkLTC
-              </div>
-            )}
-            {pct !== null && (
-              <div className="mt-3 h-2 w-full rounded bg-border overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-all"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            )}
-            {tl && (
-              <div
-                className={`mt-3 text-xs ${
-                  tl.urgent ? "text-amber-300" : "text-muted"
-                }`}
-              >
-                {tl.passed ? "Campaign ended" : tl.text}
-              </div>
-            )}
-          </div>
-
-          <DonatePanel
-            campaign={c}
-            deadlinePassed={deadlinePassed}
-            campaignUrl={campaignUrl}
-            onSuccess={refetchAll}
-          />
-
-          {address && myContribution > 0n && (
-            <div className="card text-sm">
-              <div className="text-muted text-xs uppercase tracking-wider mb-1">
-                Your contribution
-              </div>
-              <div className="font-semibold">
-                {fmtEth(myContribution)} zkLTC
-              </div>
-              <RefundButton
-                campaignId={c.id}
-                eligible={
-                  c.mode === 1 &&
-                  (c.status === 1 ||
-                    c.status === 3 ||
-                    (c.status === 0 && deadlinePassed && c.raised < c.goal))
-                }
-                onSuccess={refetchAll}
-              />
-            </div>
           )}
-
-          {isBeneficiary && <BeneficiaryPanel campaign={c} onSuccess={refetchAll} />}
         </div>
+        {dc.image ? (
+          <>
+            <div className="relative aspect-[21/9] border-y border-border overflow-hidden bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={dc.image}
+                alt=""
+                className="size-full object-cover"
+              />
+            </div>
+            <figcaption className="px-6 py-3 eyebrow flex justify-between flex-wrap gap-2">
+              <span>Field photograph · {categoryLabel(dc.category)}</span>
+              <span>
+                © LitGive — published onchain{" "}
+                {new Date(dc.createdAt).toLocaleDateString()}
+              </span>
+            </figcaption>
+          </>
+        ) : (
+          <div className="aspect-[21/9] border-y border-border halftone bg-secondary grid place-items-center">
+            <span className="font-display text-6xl text-foreground/30 italic">
+              {categoryLabel(dc.category)}
+            </span>
+          </div>
+        )}
+      </header>
+
+      <div className="px-6 mt-16 grid lg:grid-cols-12 gap-12 lg:gap-16">
+        <article className="lg:col-span-7 xl:col-span-8 lg:border-r lg:border-border lg:pr-12">
+          <div className="eyebrow mb-6">The case</div>
+          <div>
+            <p className="first-letter:font-display first-letter:text-7xl first-letter:float-left first-letter:leading-[0.85] first-letter:mr-3 first-letter:mt-1 text-lg leading-relaxed">
+              {dc.description || dc.excerpt}
+            </p>
+            {dc.pull && dc.pull !== dc.excerpt && (
+              <blockquote className="my-12 border-l-2 border-gold pl-6 font-display text-3xl italic leading-snug">
+                &quot;{dc.pull}&quot;
+              </blockquote>
+            )}
+            <p className="text-lg leading-relaxed text-muted-foreground">
+              Disbursements are recorded on LitVM. The 2% protocol fee is
+              collected only at withdrawal time, not at donation time — your
+              full gift moves to the campaign vault. If the campaign is
+              structured as <em>All or nothing</em>, refunds are automatic and
+              trustless should the goal not be met by the deadline.
+            </p>
+
+            <h3 className="font-display text-3xl mt-14 mb-4 tracking-tight">
+              Terms of this campaign
+            </h3>
+            <dl className="grid sm:grid-cols-2 gap-px bg-border border border-border">
+              <Term
+                k="Mode"
+                v={
+                  dc.mode === "AON"
+                    ? "All or nothing — refunds auto if goal missed"
+                    : "Keep what you raise — withdraw any time"
+                }
+              />
+              <Term k="Goal" v={`${formatLTC(dc.goal, dc.goal < 1 ? 4 : 2)} zkLTC`} />
+              <Term
+                k="Deadline"
+                v={
+                  dc.deadline > 0
+                    ? new Date(dc.deadline).toLocaleString()
+                    : "Open ended"
+                }
+              />
+              <Term k="Protocol fee" v="2.00% at withdrawal" />
+              <Term k="Beneficiary" v={shortAddr(dc.beneficiary)} />
+              <Term k="Contract" v={shortAddr(CONTRACT_ADDRESS)} />
+            </dl>
+          </div>
+
+          <section className="mt-20">
+            <div className="flex items-end justify-between mb-6 flex-wrap gap-2">
+              <div>
+                <div className="eyebrow">Timeline · onchain</div>
+                <h3 className="display-md mt-2">
+                  {feed?.length ?? 0} confirmed gift
+                  {(feed?.length ?? 0) === 1 ? "" : "s"}
+                </h3>
+              </div>
+              <LiveBlockLabel />
+            </div>
+            {feed === null ? (
+              <div className="space-y-2">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-12 border-b border-border" />
+                ))}
+              </div>
+            ) : feed.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No donations yet. Be the first to leave a mark on the ledger.
+              </p>
+            ) : (
+              <div>
+                {feed.map((d, i) => (
+                  <DonationItem
+                    key={`${d.txHash}-${i}`}
+                    d={d}
+                    flash={i === 0}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </article>
+
+        <aside className="lg:col-span-5 xl:col-span-4">
+          <div className="lg:sticky lg:top-32 space-y-6">
+            <DonatePanel
+              campaign={dc}
+              raw={c}
+              donors={donorCount}
+              onSuccess={refetch}
+            />
+            <BeneficiaryNote address={dc.beneficiary} />
+            <BeneficiaryActions raw={c} dc={dc} onSuccess={refetch} />
+          </div>
+        </aside>
       </div>
-    </div>
+    </>
   );
 }
 
-function Row({
-  label,
-  value,
-  href,
-  mono,
-}: {
-  label: string;
-  value: string;
-  href?: string;
-  mono?: boolean;
-}) {
-  const inner = href ? (
-    <a
-      className="hover:text-accent underline"
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-    >
-      {value.length > 12 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value}
-    </a>
-  ) : (
-    value
-  );
+function LiveBlockLabel() {
+  const h = useBlockHeight();
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-muted">{label}</span>
-      <span className={mono ? "font-mono" : ""}>{inner}</span>
+    <span className="eyebrow num">
+      Block #{h === 0n ? "—" : Number(h).toLocaleString("en-US")}
+    </span>
+  );
+}
+
+function Term({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="bg-background p-5">
+      <dt className="eyebrow">{k}</dt>
+      <dd className="num mt-2 text-foreground">{v}</dd>
     </div>
   );
 }
 
 function DonatePanel({
   campaign,
-  deadlinePassed,
-  campaignUrl,
+  raw,
+  donors,
   onSuccess,
 }: {
-  campaign: Campaign;
-  deadlinePassed: boolean;
-  campaignUrl: string;
+  campaign: ReturnType<typeof toDisplayCampaign>;
+  raw: Campaign;
+  donors: number;
   onSuccess: () => void;
 }) {
   const { isConnected } = useAccount();
-  const [amount, setAmount] = useState("0.01");
+  const [amount, setAmount] = useState("0.05");
   const [message, setMessage] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [lastAmount, setLastAmount] = useState("0");
-  const { writeContract, data: hash, isPending, reset } = useWriteContract();
-  const { isLoading: isMining, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const { writeContract, data: hash, isPending } = useWriteContract();
+  const { isLoading: isMining, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   useEffect(() => {
     if (isSuccess) {
-      setShowSuccess(true);
       onSuccess();
+      const t = setTimeout(() => setMessage(""), 1500);
+      return () => clearTimeout(t);
     }
   }, [isSuccess, onSuccess]);
 
-  const disabled = campaign.status !== 0 || deadlinePassed;
+  const amt = parseFloat(amount) || 0;
+  const fee = amt * 0.02;
+  const net = amt - fee;
 
-  function donate() {
-    setLastAmount(amount);
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: CONTRACT_ABI,
-      functionName: "donate",
-      args: [campaign.id, message],
-      value: parseEther(amount),
-    });
-  }
-
-  function closeSuccess() {
-    setShowSuccess(false);
-    setMessage("");
-    reset();
-  }
+  const deadlinePassed =
+    campaign.deadline > 0 && Date.now() > campaign.deadline;
+  const disabled = raw.status !== 0 || deadlinePassed;
 
   return (
-    <>
-      <div className="card space-y-3">
-        <div className="text-sm font-semibold">Donate</div>
-
-        {disabled ? (
-          <div className="text-xs text-muted">
-            {campaign.status !== 0
-              ? "This campaign is not active."
-              : "The deadline has passed."}
-          </div>
-        ) : !isConnected ? (
-          <div>
-            <div className="mb-2 text-xs text-muted">Connect to donate.</div>
-            <ConnectButton />
-          </div>
-        ) : (
-          <>
-            <div>
-              <label className="label">Amount (zkLTC)</label>
-              <input
-                className="input"
-                type="number"
-                step="0.0001"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-              <div className="mt-2 flex gap-2 text-xs">
-                {["0.01", "0.05", "0.1", "0.5"].map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setAmount(p)}
-                    className="rounded border border-border px-2 py-0.5 text-muted hover:border-accent hover:text-white"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="label">Message (optional, public)</label>
-              <input
-                className="input"
-                maxLength={200}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Good luck!"
-              />
-            </div>
-            <button
-              disabled={isPending || isMining || !amount || Number(amount) <= 0}
-              className="btn-primary w-full"
-              onClick={donate}
-            >
-              {isPending
-                ? "Confirm…"
-                : isMining
-                ? "Mining…"
-                : `Donate ${amount} zkLTC`}
-            </button>
-            <TxStatus hash={hash} isMining={isMining} isSuccess={isSuccess} />
-          </>
-        )}
+    <div className="border border-rule">
+      <div className="p-6 border-b border-border">
+        <GoalProgress raised={campaign.raised} goal={campaign.goal} />
+        <div className="mt-5 grid grid-cols-3 gap-px bg-border border-y border-border -mx-6">
+          <Cell k="Donors" v={donors.toString()} />
+          <Cell
+            k="Left"
+            v={campaign.deadline > 0 ? timeLeft(campaign.deadline) : "Open"}
+          />
+          <Cell
+            k="Avg gift"
+            v={
+              donors > 0
+                ? `${formatLTC(campaign.raised / donors, 3)} zk`
+                : "—"
+            }
+          />
+        </div>
       </div>
 
-      <DonationSuccessModal
-        open={showSuccess}
-        onClose={closeSuccess}
-        amount={lastAmount}
-        campaignTitle={campaign.title}
-        campaignUrl={campaignUrl}
-        txHash={hash}
-      />
-    </>
+      {disabled ? (
+        <div className="p-6 text-center">
+          <div className="eyebrow mb-2">
+            {raw.status !== 0 ? "Campaign closed" : "Deadline passed"}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            This campaign is no longer accepting donations.
+          </p>
+        </div>
+      ) : !isConnected ? (
+        <div className="p-6 space-y-4">
+          <div className="eyebrow">Connect to give</div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Bring your wallet, leave your trust at the door. The contract does
+            the rest.
+          </p>
+          <ConnectButton />
+        </div>
+      ) : (
+        <div className="p-6 space-y-5">
+          <div>
+            <div className="eyebrow mb-2">Amount · zkLTC</div>
+            <div className="flex items-baseline border-b-2 border-foreground pb-2">
+              <input
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) =>
+                  setAmount(e.target.value.replace(/[^\d.]/g, ""))
+                }
+                className="w-full bg-transparent outline-none font-display text-5xl tracking-tight num"
+                aria-label="Donation amount"
+              />
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                zkLTC
+              </span>
+            </div>
+            <div className="flex gap-2 mt-3">
+              {PRESETS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setAmount(String(p))}
+                  className={[
+                    "flex-1 py-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] border transition-colors",
+                    String(p) === amount
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-border hover:border-border-strong",
+                  ].join(" ")}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="eyebrow mb-2">Message · optional</div>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={2}
+              maxLength={140}
+              placeholder="A line for the timeline."
+              className="w-full bg-transparent border border-border focus:border-foreground outline-none p-3 text-sm font-display italic resize-none transition-colors"
+            />
+            <div className="eyebrow num mt-1 text-right">
+              {message.length}/140
+            </div>
+          </div>
+
+          <div className="font-mono text-[0.72rem] uppercase tracking-[0.16em] border border-border divide-y divide-border">
+            <Row k="Your gift" v={`${formatLTC(amt, 4)} zkLTC`} />
+            <Row k="Protocol fee" v={`${formatLTC(fee, 4)} zkLTC · 2%`} muted />
+            <Row k="Reaches campaign" v={`${formatLTC(net, 4)} zkLTC`} strong />
+          </div>
+
+          <button
+            disabled={amt <= 0 || isPending || isMining}
+            onClick={() =>
+              writeContract({
+                address: CONTRACT_ADDRESS,
+                abi: CONTRACT_ABI,
+                functionName: "donate",
+                args: [campaign.rawId, message],
+                value: parseEther(amount),
+              })
+            }
+            className="w-full bg-gold text-gold-foreground py-4 font-mono text-xs uppercase tracking-[0.22em] hover:bg-foreground hover:text-background disabled:opacity-40 transition-colors"
+          >
+            {isPending
+              ? "Confirm in wallet…"
+              : isMining
+                ? "Mining…"
+                : isSuccess
+                  ? "✓ Signed & broadcast"
+                  : `Sign & give ${formatLTC(amt, 4)} zkLTC`}
+          </button>
+          {hash && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-center"
+            >
+              <a
+                href={`${EXPLORER_BASE}/tx/${hash}`}
+                target="_blank"
+                rel="noreferrer"
+                className={
+                  isSuccess
+                    ? "text-success hover:underline"
+                    : "text-muted-foreground hover:text-foreground"
+                }
+              >
+                {isSuccess ? "✓" : "⏳"} {shortAddr(hash)} ↗
+              </a>
+            </motion.div>
+          )}
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            By signing you broadcast a transaction to LitVM. Refunds are
+            automatic for All-or-nothing campaigns.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
-function BeneficiaryPanel({
-  campaign,
+function Cell({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="px-3 py-3 text-center bg-card">
+      <div className="eyebrow">{k}</div>
+      <div className="num mt-1">{v}</div>
+    </div>
+  );
+}
+function Row({
+  k,
+  v,
+  muted,
+  strong,
+}: {
+  k: string;
+  v: string;
+  muted?: boolean;
+  strong?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        "flex justify-between px-3 py-2.5",
+        muted ? "text-muted-foreground" : "",
+        strong ? "bg-secondary" : "",
+      ].join(" ")}
+    >
+      <span>{k}</span>
+      <span className="num">{v}</span>
+    </div>
+  );
+}
+
+function BeneficiaryNote({ address }: { address: string }) {
+  return (
+    <div className="border border-border p-5 flex gap-4 items-start">
+      <Jazzicon seed={address} size={44} />
+      <div className="text-xs leading-relaxed">
+        <div className="eyebrow mb-1">Beneficiary</div>
+        <div className="num text-foreground text-sm">{shortAddr(address)}</div>
+        <p className="text-muted-foreground mt-2">
+          This address signed the campaign manifest and is the only address
+          authorized to withdraw.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BeneficiaryActions({
+  raw,
+  dc,
   onSuccess,
 }: {
-  campaign: Campaign;
+  raw: Campaign;
+  dc: ReturnType<typeof toDisplayCampaign>;
   onSuccess: () => void;
 }) {
+  const { address } = useAccount();
   const { writeContract, data: hash, isPending } = useWriteContract();
-  const { isLoading: isMining, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isMining, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   useEffect(() => {
     if (isSuccess) onSuccess();
   }, [isSuccess, onSuccess]);
 
-  const canWithdraw =
-    campaign.status === 0 || campaign.status === 1 || campaign.status === 2;
-  const canCancel = campaign.status === 0;
+  if (!address || address.toLowerCase() !== dc.beneficiary.toLowerCase())
+    return null;
+
+  const canWithdraw = raw.status !== 1;
+  const canCancel = raw.status === 0;
 
   return (
-    <div className="card space-y-3">
-      <div className="text-sm font-semibold">Beneficiary actions</div>
-
+    <div className="border border-rule p-5 space-y-3">
+      <div className="eyebrow">Operator console</div>
       <Link
-        href={`/campaign/${campaign.id.toString()}/edit`}
-        className="btn-secondary w-full text-xs"
+        href={`/campaign/${dc.id}/edit`}
+        className="block text-center border border-border-strong py-2.5 font-mono text-xs uppercase tracking-[0.18em] hover:bg-foreground hover:text-background transition-colors"
       >
-        Edit description / image
+        Edit narrative
       </Link>
-
       <button
         disabled={!canWithdraw || isPending || isMining}
-        className="btn-primary w-full"
         onClick={() =>
           writeContract({
             address: CONTRACT_ADDRESS,
             abi: CONTRACT_ABI,
             functionName: "withdraw",
-            args: [campaign.id],
+            args: [dc.rawId],
           })
         }
+        className="w-full bg-gold text-gold-foreground py-2.5 font-mono text-xs uppercase tracking-[0.22em] hover:bg-foreground hover:text-background disabled:opacity-40 transition-colors"
       >
         Withdraw available
       </button>
-
       <button
         disabled={!canCancel || isPending || isMining}
-        className="btn-secondary w-full"
         onClick={() =>
           writeContract({
             address: CONTRACT_ADDRESS,
             abi: CONTRACT_ABI,
             functionName: "cancelCampaign",
-            args: [campaign.id],
+            args: [dc.rawId],
           })
         }
+        className="w-full border border-border py-2.5 font-mono text-xs uppercase tracking-[0.18em] hover:border-destructive hover:text-destructive transition-colors disabled:opacity-40"
       >
         Cancel campaign
       </button>
-
-      <TxStatus hash={hash} isMining={isMining} isSuccess={isSuccess} />
-
-      <p className="text-[11px] text-muted">
+      <p className="text-[11px] text-muted-foreground leading-relaxed">
         For all-or-nothing campaigns, withdrawals only work after the deadline
         and once the goal is met.
       </p>
-    </div>
-  );
-}
-
-function RefundButton({
-  campaignId,
-  eligible,
-  onSuccess,
-}: {
-  campaignId: bigint;
-  eligible: boolean;
-  onSuccess: () => void;
-}) {
-  const { writeContract, data: hash, isPending } = useWriteContract();
-  const { isLoading: isMining, isSuccess } = useWaitForTransactionReceipt({ hash });
-  useEffect(() => {
-    if (isSuccess) onSuccess();
-  }, [isSuccess, onSuccess]);
-
-  return (
-    <div className="mt-2">
-      <button
-        disabled={!eligible || isPending || isMining}
-        className="btn-secondary w-full text-xs"
-        onClick={() =>
-          writeContract({
-            address: CONTRACT_ADDRESS,
-            abi: CONTRACT_ABI,
-            functionName: "refund",
-            args: [campaignId],
-          })
-        }
-        title={eligible ? "Pull a full refund" : "Refund not available"}
-      >
-        Refund my contribution
-      </button>
-      <TxStatus hash={hash} isMining={isMining} isSuccess={isSuccess} />
     </div>
   );
 }

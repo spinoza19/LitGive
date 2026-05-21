@@ -4,55 +4,50 @@ export function fmtEth(wei: bigint, digits = 4): string {
   return Number(formatEther(wei)).toFixed(digits);
 }
 
-export function shortAddr(addr: string): string {
-  if (!addr) return "";
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+export function formatLTC(n: number, frac = 2): string {
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: frac,
+    maximumFractionDigits: frac,
+  });
+}
+
+export function shortAddr(a: string): string {
+  if (!a) return "";
+  return `${a.slice(0, 6)}…${a.slice(-4)}`;
 }
 
 export function timeAgo(unixSeconds: bigint | number): string {
-  const ts = Number(unixSeconds) * 1000;
-  const diff = Date.now() - ts;
-  if (diff < 0) return "just now";
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const days = Math.floor(hr / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
+  const ts = typeof unixSeconds === "bigint" ? Number(unixSeconds) * 1000 : unixSeconds;
+  const s = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
-export function timeLeft(unixDeadline: bigint | number): {
-  text: string;
-  urgent: boolean;
-  passed: boolean;
-} {
-  const ts = Number(unixDeadline) * 1000;
-  const diff = ts - Date.now();
-  if (diff <= 0) return { text: "ended", urgent: false, passed: true };
-  const sec = Math.floor(diff / 1000);
-  const min = Math.floor(sec / 60);
-  const hr = Math.floor(min / 60);
-  const days = Math.floor(hr / 24);
-  const urgent = days < 3;
-  if (days >= 1) return { text: `${days}d left`, urgent, passed: false };
-  if (hr >= 1) return { text: `${hr}h left`, urgent: true, passed: false };
-  return { text: `${min}m left`, urgent: true, passed: false };
+export function timeLeft(unixDeadline: bigint | number): string {
+  const ts =
+    typeof unixDeadline === "bigint" ? Number(unixDeadline) * 1000 : unixDeadline;
+  const s = Math.max(0, Math.floor((ts - Date.now()) / 1000));
+  if (s === 0) return "ended";
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  if (d > 0) return `${d}d ${h}h`;
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}h ${m}m`;
 }
 
-export function categoryEmoji(cat: string): string {
+export function categoryLabel(cat: string): string {
   const map: Record<string, string> = {
-    charity: "💚",
-    creator: "🎨",
-    "public-good": "🛠️",
-    personal: "🙏",
-    religious: "🕌",
-    emergency: "🚨",
-    other: "✨",
+    charity: "Humanitarian",
+    creator: "Creators",
+    "public-good": "Public Good",
+    personal: "Medical",
+    education: "Education",
+    emergency: "Emergency",
+    other: "Other",
   };
-  return map[cat] ?? "✨";
+  return map[cat] ?? cat ?? "Uncategorized";
 }

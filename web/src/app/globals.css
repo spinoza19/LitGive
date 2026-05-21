@@ -2,41 +2,178 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    color-scheme: dark;
-  }
-  html, body {
-    background: #0b0b10;
-    color: #f5f5f7;
-    font-family: Inter, system-ui, -apple-system, sans-serif;
-  }
-  a { color: inherit; }
+/* =========================================================================
+ * LitGive — Hard Money Brutalism design system
+ * Editorial typography, dense data, restrained color, paper textures.
+ * ========================================================================= */
+
+:root {
+  /* Light — "newsprint" */
+  --background: oklch(0.985 0.006 85);
+  --foreground: oklch(0.16 0.012 60);
+  --paper: oklch(0.98 0.008 80);
+  --ink: oklch(0.14 0.012 60);
+
+  --card: oklch(0.995 0.004 85);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.995 0.004 85);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.16 0.012 60);
+  --primary-foreground: oklch(0.985 0.006 85);
+  --secondary: oklch(0.94 0.012 80);
+  --secondary-foreground: var(--foreground);
+
+  --muted: oklch(0.94 0.012 80);
+  --muted-foreground: oklch(0.45 0.014 70);
+
+  --accent: oklch(0.92 0.018 80);
+  --accent-foreground: var(--foreground);
+
+  --gold: oklch(0.78 0.082 85);
+  --gold-foreground: oklch(0.16 0.012 60);
+
+  --navy: oklch(0.32 0.07 265);
+  --navy-foreground: oklch(0.985 0.006 85);
+
+  --success: oklch(0.58 0.13 155);
+  --destructive: oklch(0.55 0.18 25);
+  --destructive-foreground: oklch(0.985 0.006 85);
+
+  --border: oklch(0.88 0.012 75);
+  --border-strong: oklch(0.18 0.012 60);
+  --rule: oklch(0.16 0.012 60);
+  --input: oklch(0.88 0.012 75);
+  --ring: oklch(0.16 0.012 60);
+
+  --grain: radial-gradient(oklch(0.16 0.012 60 / 0.025) 1px, transparent 1px);
+  --halftone: radial-gradient(oklch(0.16 0.012 60 / 0.18) 1px, transparent 1.4px);
+
+  color-scheme: light;
 }
 
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition border border-transparent;
+.dark {
+  /* Dark — "ink" */
+  --background: oklch(0.13 0.008 60);
+  --foreground: oklch(0.96 0.012 85);
+  --paper: oklch(0.96 0.012 85);
+  --ink: oklch(0.13 0.008 60);
+
+  --card: oklch(0.155 0.01 60);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.155 0.01 60);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.96 0.012 85);
+  --primary-foreground: oklch(0.13 0.008 60);
+  --secondary: oklch(0.20 0.012 60);
+  --secondary-foreground: var(--foreground);
+
+  --muted: oklch(0.20 0.012 60);
+  --muted-foreground: oklch(0.68 0.014 75);
+
+  --accent: oklch(0.22 0.014 60);
+  --accent-foreground: var(--foreground);
+
+  --gold: oklch(0.80 0.095 85);
+  --gold-foreground: oklch(0.13 0.008 60);
+
+  --navy: oklch(0.55 0.13 265);
+  --navy-foreground: oklch(0.13 0.008 60);
+
+  --success: oklch(0.72 0.16 155);
+  --destructive: oklch(0.68 0.20 25);
+  --destructive-foreground: oklch(0.13 0.008 60);
+
+  --border: oklch(0.26 0.012 60);
+  --border-strong: oklch(0.92 0.012 85);
+  --rule: oklch(0.96 0.012 85);
+  --input: oklch(0.26 0.012 60);
+  --ring: oklch(0.80 0.095 85);
+
+  --grain: radial-gradient(oklch(0.96 0.012 85 / 0.04) 1px, transparent 1px);
+  --halftone: radial-gradient(oklch(0.96 0.012 85 / 0.22) 1px, transparent 1.4px);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * { border-color: var(--border); }
+  html {
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  .btn-primary {
-    @apply btn bg-accent text-black hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed;
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    background-image: var(--grain);
+    background-size: 3px 3px;
   }
-  .btn-secondary {
-    @apply btn bg-panel text-white border-border hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed;
+  ::selection {
+    background: var(--gold);
+    color: var(--gold-foreground);
   }
-  .btn-ghost {
-    @apply btn text-muted hover:text-white;
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
   }
-  .input {
-    @apply w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-white placeholder:text-muted focus:border-accent focus:outline-none;
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-mono-pro { font-family: var(--font-mono); font-feature-settings: "tnum","zero"; }
+  .num { font-family: var(--font-mono); font-feature-settings: "tnum","zero"; }
+  .rule { border-color: var(--rule); }
+  .halftone { background-image: var(--halftone); background-size: 6px 6px; }
+
+  /* Editorial display scale */
+  .display-xl {
+    font-family: var(--font-display);
+    font-weight: 300;
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+    font-size: clamp(3.2rem, 9vw, 7.5rem);
   }
-  .label {
-    @apply block text-xs font-medium uppercase tracking-wider text-muted mb-1;
+  .display-lg {
+    font-family: var(--font-display);
+    font-weight: 300;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    font-size: clamp(2.4rem, 6vw, 4.5rem);
   }
-  .card {
-    @apply rounded-xl border border-border bg-panel p-5;
+  .display-md {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: -0.022em;
+    font-size: clamp(1.6rem, 3.4vw, 2.6rem);
   }
-  .badge {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide;
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
+}
+
+/* Marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track { animation: marquee 60s linear infinite; }
+
+/* Slide-in flash for live activity */
+@keyframes flash {
+  0% { background-color: oklch(from var(--gold) l c h / 0.35); }
+  100% { background-color: transparent; }
+}
+.flash-once { animation: flash 1.2s ease-out 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  .flash-once { animation: none; }
 }

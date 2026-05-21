@@ -1,36 +1,42 @@
 import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { fraunces, interTight, jetbrainsMono } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LitGive — Onchain donations on LitVM",
+  title: "LitGive — Donations, transparent by default",
   description:
-    "Generic donation marketplace on LitVM. Launch a campaign for any cause and accept zkLTC.",
+    "Onchain donation marketplace built on LitVM, Litecoin's first ZK rollup. Public good, public ledger.",
   openGraph: {
-    title: "LitGive — Onchain donations on LitVM",
+    title: "LitGive — Donations, transparent by default",
     description:
-      "Launch a campaign for any cause — charity, creator, public good, personal — and accept zkLTC with full transparency.",
+      "A donation marketplace on LitVM. Anyone can launch a campaign. Every transaction is public.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "LitGive — Onchain donations on LitVM",
+    title: "LitGive — Donations, transparent by default",
     description:
-      "Onchain donation marketplace built on LitVM. Sub-cent fees, transparent flows, no middlemen.",
+      "Onchain donation marketplace on LitVM. Sub-cent fees, transparent flows, no middlemen.",
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen">
+    <html
+      lang="en"
+      className={`${fraunces.variable} ${interTight.variable} ${jetbrainsMono.variable} dark`}
+      suppressHydrationWarning
+    >
+      <body className="font-sans antialiased">
         <Providers>
-          <Nav />
-          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-          <footer className="mt-16 border-t border-border py-6 text-center text-xs text-muted">
-            Built on LitVM LiteForge testnet · Chain ID 4441 · zkLTC
-          </footer>
+          <div className="min-h-screen flex flex-col">
+            <Nav />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
         </Providers>
       </body>
     </html>

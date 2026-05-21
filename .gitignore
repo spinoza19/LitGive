@@ -23,3 +23,6 @@ deployments.json
 .vscode/
 *.log
 *.tmp
+
+# --- design exploration (not part of the product source) ---
+Design/
