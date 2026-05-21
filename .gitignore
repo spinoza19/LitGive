@@ -1,0 +1,25 @@
+# --- secrets ---
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# --- node ---
+node_modules/
+
+# --- next.js ---
+.next/
+out/
+
+# --- hardhat ---
+artifacts/
+cache/
+typechain-types/
+deployments.json
+
+# --- editors / os ---
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.tmp

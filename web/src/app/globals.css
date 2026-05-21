@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html, body {
+    background: #0b0b10;
+    color: #f5f5f7;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+  }
+  a { color: inherit; }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition border border-transparent;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-black hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply btn bg-panel text-white border-border hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:text-white;
+  }
+  .input {
+    @apply w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-white placeholder:text-muted focus:border-accent focus:outline-none;
+  }
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wider text-muted mb-1;
+  }
+  .card {
+    @apply rounded-xl border border-border bg-panel p-5;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide;
+  }
+}
