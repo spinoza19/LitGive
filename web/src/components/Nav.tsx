@@ -35,7 +35,7 @@ export function Nav() {
         <Link
           href="/"
           className="flex items-center gap-3 group"
-          aria-label="LitGive — home"
+          aria-label="LitGive home"
         >
           <Logo
             size={28}

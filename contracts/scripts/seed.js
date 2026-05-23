@@ -78,7 +78,7 @@ async function main() {
       mode: 1,
     },
     {
-      title: "Pediatric heart surgery — Aya, age 7",
+      title: "Pediatric heart surgery for Aya, age 7",
       description:
         "Aya was born with a congenital aortic valve defect. The local hospital scheduled the procedure for early spring; her family is uninsured. Funds go directly to the hospital via itemized weekly withdrawals.",
       image: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=1200",
@@ -88,7 +88,7 @@ async function main() {
       mode: 1,
     },
     {
-      title: "Earthquake response — emergency kits for displaced families",
+      title: "Earthquake response: emergency kits for displaced families",
       description:
         "Emergency relief: tents, blankets, food, water purification tablets for displaced families in mountain villages. Coordinated with local civil protection. Withdrawals are released after each delivery batch is verified onchain.",
       image: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1200",
@@ -127,7 +127,7 @@ async function main() {
 
   // Sprinkle some donations across a few campaigns
   const donations = [
-    { id: 1, amount: "0.01", message: "For the kids — let's go." },
+    { id: 1, amount: "0.01", message: "For the kids. Let's go." },
     { id: 1, amount: "0.005", message: "Small but consistent." },
     { id: 3, amount: "0.02", message: "Love what you're doing." },
     { id: 5, amount: "0.015", message: "Investing in the next generation." },

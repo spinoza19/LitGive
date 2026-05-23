@@ -139,7 +139,7 @@ function FeatureCard({ c }: { c: DisplayCampaign }) {
         <div className="lg:col-span-5 p-8 lg:p-12 flex flex-col justify-between gap-8">
           <div className="space-y-6">
             <div className="eyebrow">
-              {categoryLabel(c.category)} —{" "}
+              {categoryLabel(c.category)} ·{" "}
               {c.mode === "AON" ? "All or nothing" : "Keep what you raise"}
             </div>
             <h2 className="display-lg">{c.title}</h2>

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { Mark } from "./icon";
 
-export const alt = "LitGive — Donations, transparent by default";
+export const alt = "LitGive · Donations, transparent by default";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

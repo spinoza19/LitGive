@@ -16,7 +16,7 @@ export function Footer() {
             </span>
           </div>
           <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-            Donations, transparent by default. Built on LitVM — Litecoin&apos;s
+            Donations, transparent by default. Built on LitVM. Litecoin&apos;s
             first ZK rollup. Hard money for soft hands.
           </p>
         </div>
@@ -65,7 +65,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-border px-6 py-4 flex flex-col sm:flex-row gap-2 justify-between font-mono text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-        <span>© {new Date().getFullYear()} LitGive — A public good</span>
+        <span>© {new Date().getFullYear()} LitGive · A public good</span>
         <span>Built on LitVM · Litecoin&apos;s first ZK rollup</span>
       </div>
     </footer>

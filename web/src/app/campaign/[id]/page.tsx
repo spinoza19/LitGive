@@ -130,7 +130,7 @@ export default function CampaignPage() {
             <figcaption className="px-6 py-3 eyebrow flex justify-between flex-wrap gap-2">
               <span>Field photograph · {categoryLabel(dc.category)}</span>
               <span>
-                © LitGive — published onchain{" "}
+                © LitGive · Published onchain{" "}
                 {new Date(dc.createdAt).toLocaleDateString()}
               </span>
             </figcaption>
@@ -158,7 +158,7 @@ export default function CampaignPage() {
             )}
             <p className="text-lg leading-relaxed text-muted-foreground">
               Disbursements are recorded on LitVM. The 2% protocol fee is
-              collected only at withdrawal time, not at donation time — your
+              collected only at withdrawal time, not at donation time. Your
               full gift moves to the campaign vault. If the campaign is
               structured as <em>All or nothing</em>, refunds are automatic and
               trustless should the goal not be met by the deadline.
@@ -172,8 +172,8 @@ export default function CampaignPage() {
                 k="Mode"
                 v={
                   dc.mode === "AON"
-                    ? "All or nothing — refunds auto if goal missed"
-                    : "Keep what you raise — withdraw any time"
+                    ? "All or nothing. Refunds auto if goal missed"
+                    : "Keep what you raise. Withdraw any time"
                 }
               />
               <Term k="Goal" v={`${formatLTC(dc.goal, dc.goal < 1 ? 4 : 2)} zkLTC`} />
@@ -247,7 +247,7 @@ function LiveBlockLabel() {
   const h = useBlockHeight();
   return (
     <span className="eyebrow num">
-      Block #{h === 0n ? "—" : Number(h).toLocaleString("en-US")}
+      Block #{h === 0n ? "…" : Number(h).toLocaleString("en-US")}
     </span>
   );
 }
@@ -312,7 +312,7 @@ function DonatePanel({
             v={
               donors > 0
                 ? `${formatLTC(campaign.raised / donors, 3)} zk`
-                : "—"
+                : "…"
             }
           />
         </div>

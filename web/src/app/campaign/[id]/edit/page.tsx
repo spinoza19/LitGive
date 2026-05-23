@@ -218,7 +218,7 @@ export default function EditCampaign() {
                     : "text-muted-foreground hover:text-foreground"
                 }
               >
-                {isSuccess ? "✓ Saved — " : "⏳ Pending — "}
+                {isSuccess ? "✓ Saved. " : "⏳ Pending. "}
                 {shortAddr(hash)} ↗
               </a>
             </div>
@@ -265,7 +265,7 @@ export default function EditCampaign() {
             <Row k="Category (current)" v={categoryLabel(campaign.category)} />
             <p className="text-xs text-muted-foreground pt-2 leading-relaxed">
               These were committed at publish time and cannot be altered. To
-              change them, cancel and republish — donors will receive refunds.
+              change them, cancel and republish. Donors will receive refunds.
             </p>
           </div>
         </aside>

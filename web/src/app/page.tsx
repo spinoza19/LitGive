@@ -188,7 +188,7 @@ export default function HomePage() {
             </h2>
             <p className="text-muted-foreground mt-6 max-w-md leading-relaxed">
               Donations stream in as they&apos;re mined. No editorial discretion,
-              no moderation queue — if it&apos;s on the ledger, it&apos;s on the
+              no moderation queue. If it&apos;s on the ledger, it&apos;s on the
               page.
             </p>
             <div className="mt-10 space-y-3 text-sm">
@@ -240,7 +240,7 @@ export default function HomePage() {
             are forever.&quot;
           </p>
           <div className="eyebrow num">
-            — LitGive contract{" "}
+            · LitGive contract{" "}
             <a
               className="underline underline-offset-2 hover:text-gold"
               href={`${NETWORK.explorer}/address/${NETWORK.contract}`}
@@ -282,7 +282,7 @@ function Hero({ campaignCount }: { campaignCount: number }) {
           </h1>
           <p className="mt-10 max-w-xl text-lg text-muted-foreground leading-relaxed">
             A donation marketplace on{" "}
-            <span className="text-foreground">LitVM</span> — Litecoin&apos;s
+            <span className="text-foreground">LitVM</span>. Litecoin&apos;s
             first ZK rollup. Anyone can launch a campaign. Every transaction is
             public. Fees are taken once, at withdrawal.
           </p>
@@ -379,7 +379,7 @@ function LiveBlock() {
   const h = useBlockHeight();
   return (
     <span className="num">
-      #{h === 0n ? "—" : Number(h).toLocaleString("en-US")}
+      #{h === 0n ? "…" : Number(h).toLocaleString("en-US")}
     </span>
   );
 }

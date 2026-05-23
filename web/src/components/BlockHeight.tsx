@@ -16,7 +16,7 @@ export function BlockHeight({ className }: { className?: string }) {
     <span className={className}>
       <span className="inline-block size-1.5 rounded-full bg-success mr-2 align-middle animate-pulse" />
       <span className="num">
-        #{h === 0n ? "—" : Number(h).toLocaleString("en-US")}
+        #{h === 0n ? "…" : Number(h).toLocaleString("en-US")}
       </span>
     </span>
   );

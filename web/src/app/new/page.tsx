@@ -296,7 +296,7 @@ export default function NewCampaign() {
                       : "text-muted-foreground hover:text-foreground"
                   }
                 >
-                  {isSuccess ? "✓ Published — " : "⏳ Pending — "}
+                  {isSuccess ? "✓ Published. " : "⏳ Pending. "}
                   {shortAddr(hash)} ↗
                 </a>
               </div>

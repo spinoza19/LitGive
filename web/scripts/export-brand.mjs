@@ -125,7 +125,7 @@ function svgWordmark({
       : `  <rect width="480" height="140" fill="${background}" />\n`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 140" width="480" height="140" role="img" aria-label="LitGive — Onchain donations on LitVM">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 140" width="480" height="140" role="img" aria-label="LitGive. Onchain donations on LitVM">
 ${bgRect}  <g transform="translate(20 38)">
 ${arms}
     <circle cx="${CX}" cy="${CY}" r="${PIN_R}" fill="${ink}" />

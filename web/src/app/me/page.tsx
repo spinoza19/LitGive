@@ -242,7 +242,7 @@ export default function Dashboard() {
                   <span className="num text-right text-muted-foreground">
                     {row.ts > 0
                       ? new Date(row.ts).toLocaleDateString()
-                      : "—"}
+                      : "…"}
                   </span>
                   <span className="text-right text-muted-foreground">
                     {row.ref}
