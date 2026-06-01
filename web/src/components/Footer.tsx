@@ -53,7 +53,7 @@ export function Footer() {
         </div>
         <div className="md:col-span-2 space-y-2">
           <div className="eyebrow mb-3">Channels</div>
-          <FootLink href="https://twitter.com/LitecoinVM" external>
+          <FootLink href="https://x.com/lit_give" external>
             Twitter
           </FootLink>
           <FootLink href="https://t.me/litecoinvm" external>
