@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useReadContract } from "wagmi";
 import { formatEther } from "viem";
@@ -89,6 +89,18 @@ export default function HomePage() {
     [filtered, featured],
   );
 
+  // Pagination — 15 campaigns per page.
+  const PER_PAGE = 15;
+  const [page, setPage] = useState(1);
+  // Jump back to the first page whenever the filter/sort selection changes.
+  useEffect(() => setPage(1), [filters]);
+  const pageCount = Math.max(1, Math.ceil(rest.length / PER_PAGE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => rest.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE),
+    [rest, currentPage],
+  );
+
   // Stats
   const totalRaised = display.reduce((acc, c) => acc + c.raised, 0);
   const liveCount = display.filter((c) => c.status === "live").length;
@@ -153,13 +165,24 @@ export default function HomePage() {
           totalCount={display.length}
         />
         {rest.length > 0 ? (
-          <div className="px-6 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
-            {rest.map((c, i) => (
-              <div key={c.id} className="bg-background">
-                <CampaignCard c={c} index={i} />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="px-6 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
+              {paged.map((c, i) => (
+                <div key={c.id} className="bg-background">
+                  <CampaignCard c={c} index={i} />
+                </div>
+              ))}
+            </div>
+            {pageCount > 1 && (
+              <Pagination
+                page={currentPage}
+                pageCount={pageCount}
+                total={rest.length}
+                perPage={PER_PAGE}
+                onPage={setPage}
+              />
+            )}
+          </>
         ) : (
           <div className="px-6 py-20 text-center">
             <div className="eyebrow">No matches</div>
@@ -348,6 +371,72 @@ function InIssue() {
         </li>
       ))}
     </>
+  );
+}
+
+function Pagination({
+  page,
+  pageCount,
+  total,
+  perPage,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  perPage: number;
+  onPage: (p: number) => void;
+}) {
+  const go = (p: number) => {
+    const next = Math.min(Math.max(1, p), pageCount);
+    onPage(next);
+    document
+      .getElementById("directory")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const from = (page - 1) * perPage + 1;
+  const to = Math.min(page * perPage, total);
+  return (
+    <nav
+      aria-label="Pagination"
+      className="px-6 pb-10 flex flex-wrap items-center justify-between gap-4 border-t border-rule pt-6"
+    >
+      <button
+        onClick={() => go(page - 1)}
+        disabled={page <= 1}
+        className="font-mono text-xs uppercase tracking-[0.18em] inline-flex items-center gap-2 disabled:opacity-30 hover:text-gold transition-colors"
+      >
+        <span aria-hidden>←</span> Prev
+      </button>
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+          <button
+            key={p}
+            onClick={() => go(p)}
+            aria-current={p === page ? "page" : undefined}
+            className={`size-9 num text-xs transition-colors ${
+              p === page
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-gold"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="eyebrow num hidden sm:inline">
+          {from}–{to} of {total}
+        </span>
+        <button
+          onClick={() => go(page + 1)}
+          disabled={page >= pageCount}
+          className="font-mono text-xs uppercase tracking-[0.18em] inline-flex items-center gap-2 disabled:opacity-30 hover:text-gold transition-colors"
+        >
+          Next <span aria-hidden>→</span>
+        </button>
+      </div>
+    </nav>
   );
 }
 
