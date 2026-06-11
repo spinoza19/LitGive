@@ -29,7 +29,7 @@ export default function NewCampaign() {
   const router = useRouter();
 
   const [beneficiary, setBeneficiary] = useState("");
-  const [title, setTitle] = useState("Untitled campaign");
+  const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState(
     "A one-line summary, written like a headline.",
   );
@@ -42,6 +42,14 @@ export default function NewCampaign() {
   const [goal, setGoal] = useState("1");
   const [days, setDays] = useState("21");
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  function handleFile(file: File | undefined | null) {
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setImageUrl((ev.target?.result as string) ?? "");
+    reader.readAsDataURL(file);
+  }
 
   useEffect(() => {
     if (isConnected && address && !beneficiary) {
@@ -76,6 +84,10 @@ export default function NewCampaign() {
       setError("Title is required.");
       return;
     }
+    if (!imageUrl) {
+      setError("A cover image is required.");
+      return;
+    }
     const goalWei = goal ? parseEther(goal) : 0n;
     const deadline =
       days && Number(days) > 0
@@ -90,6 +102,10 @@ export default function NewCampaign() {
 
     const description = `${excerpt.trim()}\n\n${body.trim()}`.trim();
 
+    // Base64 images are too large to store onchain (gas cost).
+    // We preview them locally but don't send them to the contract.
+    const onchainImageURI = imageUrl.startsWith("data:") ? "" : imageUrl;
+
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
@@ -98,7 +114,7 @@ export default function NewCampaign() {
         beneficiary as `0x${string}`,
         title,
         description,
-        imageUrl,
+        onchainImageURI,
         cat,
         goalWei,
         deadline,
@@ -145,12 +161,13 @@ export default function NewCampaign() {
           {/* Editor */}
           <div className="lg:col-span-7 xl:col-span-8 lg:border-r border-border px-6 lg:px-12 py-12 space-y-10">
             <section>
-              <div className="eyebrow mb-3">Title</div>
+              <div className="eyebrow mb-3">Title <span className="text-destructive">*</span></div>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={200}
-                className="w-full bg-transparent outline-none font-display text-5xl md:text-6xl leading-[0.95] tracking-tight border-b border-border focus:border-foreground pb-3 transition-colors"
+                placeholder="Give your campaign a title"
+                className="w-full bg-transparent outline-none font-display text-5xl md:text-6xl leading-[0.95] tracking-tight border-b border-border focus:border-foreground pb-3 transition-colors placeholder:text-muted-foreground/40"
               />
             </section>
 
@@ -166,30 +183,77 @@ export default function NewCampaign() {
 
             <section className="space-y-3">
               <div className="flex justify-between items-baseline">
-                <div className="eyebrow">Cover</div>
-                <span className="eyebrow">https URL · 16:9 recommended</span>
-              </div>
-              <input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/…"
-                className="w-full bg-transparent border-b border-border focus:border-foreground py-3 outline-none font-mono text-sm transition-colors"
-              />
-              {!imageUrl && (
-                <div className="aspect-[16/9] border border-dashed border-border flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                  <ImageIcon className="size-6" />
-                  <span className="font-mono text-xs uppercase tracking-[0.18em]">
-                    Paste an image URL above
-                  </span>
+                <div className="eyebrow">
+                  Cover <span className="text-destructive">*</span>
                 </div>
+                <span className="eyebrow">JPG · PNG · WEBP · 16:9 recommended</span>
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                id="cover-upload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                onChange={(e) => handleFile(e.target.files?.[0])}
+              />
+
+              {imageUrl ? (
+                <div className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="w-full aspect-[16/9] object-cover border border-border"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <label
+                      htmlFor="cover-upload"
+                      className="cursor-pointer bg-background/90 px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] hover:bg-foreground hover:text-background transition-colors"
+                    >
+                      Change
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="bg-background/90 px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label
+                  htmlFor="cover-upload"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    handleFile(e.dataTransfer.files?.[0]);
+                  }}
+                  className={`cursor-pointer block aspect-[16/9] border border-dashed flex flex-col items-center justify-center gap-3 transition-colors ${
+                    isDragging
+                      ? "border-foreground text-foreground bg-foreground/5"
+                      : "border-border hover:border-foreground text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <ImageIcon className="size-6" />
+                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-center px-4">
+                    Click to upload · or drag and drop
+                  </span>
+                  <span className="font-mono text-[0.6rem] uppercase tracking-[0.16em] opacity-60">
+                    JPG · PNG · WEBP
+                  </span>
+                </label>
               )}
-              {imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="w-full aspect-[16/9] object-cover border border-border"
-                />
+              {imageUrl && imageUrl.startsWith("data:") && (
+                <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-[0.14em]">
+                  Image visible in preview · not stored onchain (local session only)
+                </p>
               )}
             </section>
 
@@ -329,21 +393,25 @@ export default function NewCampaign() {
               </div>
               <div className="border border-border bg-background">
                 <div className="aspect-[4/3] halftone border-b border-border relative overflow-hidden bg-muted">
-                  {imageUrl && (
+                  {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={imageUrl}
                       alt=""
                       className="size-full object-cover"
                     />
+                  ) : (
+                    <div className="size-full flex items-center justify-center">
+                      <ImageIcon className="size-6 text-muted-foreground/40" />
+                    </div>
                   )}
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="eyebrow">
                     {categoryLabel(cat)} · {mode}
                   </div>
-                  <h3 className="font-display text-2xl leading-[1.05] tracking-tight">
-                    {title || "Untitled campaign"}
+                  <h3 className={`font-display text-2xl leading-[1.05] tracking-tight ${!title ? "text-muted-foreground/40 italic" : ""}`}>
+                    {title || "Your title here"}
                   </h3>
                   <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                     {excerpt}
