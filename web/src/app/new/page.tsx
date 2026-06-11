@@ -38,14 +38,6 @@ export default function NewCampaign() {
   const [goal, setGoal] = useState("1");
   const [days, setDays] = useState("21");
   const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  function handleFile(file: File | undefined | null) {
-    if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setImageUrl((ev.target?.result as string) ?? "");
-    reader.readAsDataURL(file);
-  }
 
   useEffect(() => {
     if (isConnected && address && !beneficiary) {
@@ -98,10 +90,6 @@ export default function NewCampaign() {
 
     const description = `${excerpt.trim()}\n\n${body.trim()}`.trim();
 
-    // Base64 images are too large to store onchain (gas cost).
-    // We preview them locally but don't send them to the contract.
-    const onchainImageURI = imageUrl.startsWith("data:") ? "" : imageUrl;
-
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
@@ -110,7 +98,7 @@ export default function NewCampaign() {
         beneficiary as `0x${string}`,
         title,
         description,
-        onchainImageURI,
+        imageUrl.trim(),
         cat,
         goalWei,
         deadline,
@@ -183,75 +171,35 @@ export default function NewCampaign() {
                 <div className="eyebrow">
                   Cover <span className="text-destructive">*</span>
                 </div>
-                <span className="eyebrow">JPG · PNG · WEBP · 16:9 recommended</span>
+                <span className="eyebrow">https URL · 16:9 recommended</span>
               </div>
 
-              {/* Hidden file input */}
               <input
-                id="cover-upload"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="sr-only"
-                onChange={(e) => handleFile(e.target.files?.[0])}
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://images.unsplash.com/…"
+                className="w-full bg-transparent border-b border-border focus:border-foreground py-3 outline-none font-mono text-sm transition-colors placeholder:text-muted-foreground/40"
               />
 
               {imageUrl ? (
-                <div className="relative group">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imageUrl}
-                    alt=""
-                    className="w-full aspect-[16/9] object-cover border border-border"
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <label
-                      htmlFor="cover-upload"
-                      className="cursor-pointer bg-background/90 px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] hover:bg-foreground hover:text-background transition-colors"
-                    >
-                      Change
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setImageUrl("")}
-                      className="bg-background/90 px-4 py-2 font-mono text-xs uppercase tracking-[0.18em] hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="w-full aspect-[16/9] object-cover border border-border"
+                />
               ) : (
-                <label
-                  htmlFor="cover-upload"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragging(true);
-                  }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragging(false);
-                    handleFile(e.dataTransfer.files?.[0]);
-                  }}
-                  className={`cursor-pointer block aspect-[16/9] border border-dashed flex flex-col items-center justify-center gap-3 transition-colors ${
-                    isDragging
-                      ? "border-foreground text-foreground bg-foreground/5"
-                      : "border-border hover:border-foreground text-muted-foreground hover:text-foreground"
-                  }`}
-                >
+                <div className="aspect-[16/9] border border-dashed border-border flex flex-col items-center justify-center gap-3 text-muted-foreground">
                   <ImageIcon className="size-6" />
-                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-center px-4">
-                    Click to upload · or drag and drop
+                  <span className="font-mono text-xs uppercase tracking-[0.18em]">
+                    Paste an image URL above
                   </span>
-                  <span className="font-mono text-[0.6rem] uppercase tracking-[0.16em] opacity-60">
-                    JPG · PNG · WEBP
-                  </span>
-                </label>
+                </div>
               )}
-              {imageUrl && imageUrl.startsWith("data:") && (
-                <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-[0.14em]">
-                  Image visible in preview · not stored onchain (local session only)
-                </p>
-              )}
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Paste a public image link (e.g. from Unsplash). The URL is
+                stored onchain and shown to donors, so it must stay reachable.
+              </p>
             </section>
 
             <section>
