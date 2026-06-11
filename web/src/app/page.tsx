@@ -21,7 +21,7 @@ export default function HomePage() {
     abi: CONTRACT_ABI,
     functionName: "listCampaigns",
     args: [0n, 1000n],
-    query: { refetchInterval: 10_000 },
+    query: { refetchInterval: 20_000 },
   }) as { data: Campaign[] | undefined };
 
   const { events: allDonations } = useDonationEvents();

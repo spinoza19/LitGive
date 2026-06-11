@@ -4,8 +4,7 @@ import { useBlockNumber } from "wagmi";
 
 export function useBlockHeight(): bigint {
   const { data } = useBlockNumber({
-    watch: true,
-    query: { refetchInterval: 4000 },
+    query: { refetchInterval: 15_000 },
   });
   return data ?? 0n;
 }

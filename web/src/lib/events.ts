@@ -31,36 +31,29 @@ export type CampaignCreatedEvent = {
   blockNumber: bigint;
 };
 
-// Scanning from genesis (block 0) times out on this RPC once the chain is
-// long-lived — there are ~11M empty blocks before the contract existed.
-// Start at the deployment block and page through in chunks the RPC handles
-// comfortably (≈1M blocks resolves in ~1s).
+// Scanning from genesis (block 0) times out on this RPC — there are ~11M
+// empty blocks before the contract existed. Starting at the deployment block
+// keeps it to a single request that resolves in ~1s, which also avoids the
+// rate limiting (HTTP 429) that paging into many requests would trigger.
 const DEPLOY_BLOCK = BigInt(
   (DEPLOYMENT as { deployBlock?: number }).deployBlock ?? 0,
 );
-const LOG_CHUNK = 1_000_000n;
 
 type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
-async function getLogsChunked(
+async function getContractLogs(
   client: PublicClient,
   event: AbiEvent,
   args?: Record<string, unknown>,
 ): Promise<Log[]> {
-  const latest = await client.getBlockNumber();
-  const all: Log[] = [];
-  for (let from = DEPLOY_BLOCK; from <= latest; from += LOG_CHUNK) {
-    const to = from + LOG_CHUNK - 1n > latest ? latest : from + LOG_CHUNK - 1n;
-    const logs = await client.getLogs({
-      address: CONTRACT_ADDRESS,
-      event,
-      args,
-      fromBlock: from,
-      toBlock: to,
-    } as Parameters<PublicClient["getLogs"]>[0]);
-    all.push(...(logs as Log[]));
-  }
-  return all;
+  const logs = await client.getLogs({
+    address: CONTRACT_ADDRESS,
+    event,
+    args,
+    fromBlock: DEPLOY_BLOCK,
+    toBlock: "latest",
+  } as Parameters<PublicClient["getLogs"]>[0]);
+  return logs as Log[];
 }
 
 /**
@@ -78,7 +71,7 @@ export function useDonationEvents(campaignId?: bigint) {
 
     async function fetchLogs() {
       try {
-        const logs = (await getLogsChunked(
+        const logs = (await getContractLogs(
           client!,
           DONATION_EVENT,
           campaignId !== undefined ? { campaignId } : undefined,
@@ -101,7 +94,7 @@ export function useDonationEvents(campaignId?: bigint) {
     }
 
     fetchLogs();
-    const interval = setInterval(fetchLogs, 12_000);
+    const interval = setInterval(fetchLogs, 30_000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -124,7 +117,7 @@ export function useCampaignsByBeneficiary(beneficiary?: `0x${string}`) {
 
     async function fetchLogs() {
       try {
-        const logs = (await getLogsChunked(client!, CAMPAIGN_CREATED_EVENT, {
+        const logs = (await getContractLogs(client!, CAMPAIGN_CREATED_EVENT, {
           beneficiary,
         })) as Log<bigint, number, false, typeof CAMPAIGN_CREATED_EVENT>[];
 
