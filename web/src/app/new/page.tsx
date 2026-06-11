@@ -30,12 +30,8 @@ export default function NewCampaign() {
 
   const [beneficiary, setBeneficiary] = useState("");
   const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState(
-    "A one-line summary, written like a headline.",
-  );
-  const [body, setBody] = useState(
-    "Open with the why. Be specific. Use short sentences.\n\nList what funds buy, in plain numbers. Trust is built in detail.",
-  );
+  const [excerpt, setExcerpt] = useState("");
+  const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [cat, setCat] = useState(CATS[0].value);
   const [mode, setMode] = useState<"KWYR" | "AON">("AON");
@@ -177,7 +173,8 @@ export default function NewCampaign() {
                 value={excerpt}
                 onChange={(e) => setExcerpt(e.target.value)}
                 rows={2}
-                className="w-full bg-transparent outline-none font-display italic text-2xl leading-snug text-foreground/85 border-b border-border focus:border-foreground pb-3 resize-none transition-colors"
+                placeholder="A one-line summary, written like a headline."
+                className="w-full bg-transparent outline-none font-display italic text-2xl leading-snug text-foreground/85 border-b border-border focus:border-foreground pb-3 resize-none transition-colors placeholder:text-muted-foreground/40"
               />
             </section>
 
@@ -263,7 +260,10 @@ export default function NewCampaign() {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={10}
-                className="w-full bg-transparent outline-none font-display text-lg leading-relaxed border-b border-border focus:border-foreground pb-3 resize-none transition-colors"
+                placeholder={
+                  "Open with the why. Be specific. Use short sentences.\n\nList what funds buy, in plain numbers. Trust is built in detail."
+                }
+                className="w-full bg-transparent outline-none font-display text-lg leading-relaxed border-b border-border focus:border-foreground pb-3 resize-none transition-colors placeholder:text-muted-foreground/40"
               />
               <div className="eyebrow num text-right mt-2">
                 {body.length} chars ·{" "}
@@ -413,8 +413,14 @@ export default function NewCampaign() {
                   <h3 className={`font-display text-2xl leading-[1.05] tracking-tight ${!title ? "text-muted-foreground/40 italic" : ""}`}>
                     {title || "Your title here"}
                   </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                    {excerpt}
+                  <p
+                    className={`text-sm line-clamp-3 leading-relaxed ${
+                      excerpt
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/40 italic"
+                    }`}
+                  >
+                    {excerpt || "A one-line summary, written like a headline."}
                   </p>
                   <div className="pt-2">
                     <GoalProgress
