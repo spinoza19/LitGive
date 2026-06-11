@@ -29,9 +29,13 @@ async function main() {
 
   const address = await c.getAddress();
   const txHash = c.deploymentTransaction()?.hash;
+  const deployBlock = txHash
+    ? (await hre.ethers.provider.getTransactionReceipt(txHash))?.blockNumber
+    : undefined;
 
   console.log(`\n✅ Deployed at: ${address}`);
   console.log(`   tx: ${txHash}`);
+  console.log(`   block: ${deployBlock}`);
 
   // Persist deployment info
   const out = {
@@ -42,6 +46,7 @@ async function main() {
     feeRecipient,
     platformFeeBps,
     txHash,
+    deployBlock,
     deployedAt: new Date().toISOString(),
   };
   const file = path.join(__dirname, "..", "deployments.json");

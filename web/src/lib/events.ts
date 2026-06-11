@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { usePublicClient } from "wagmi";
-import { parseAbiItem, type Log } from "viem";
+import { parseAbiItem, type AbiEvent, type Log } from "viem";
 import { CONTRACT_ADDRESS } from "./contract";
+import { DEPLOYMENT } from "./deployment";
 
 // ABI items for the events we care about
 const DONATION_EVENT = parseAbiItem(
@@ -30,11 +31,41 @@ export type CampaignCreatedEvent = {
   blockNumber: bigint;
 };
 
-const FROM_BLOCK_FALLBACK = 0n;
+// Scanning from genesis (block 0) times out on this RPC once the chain is
+// long-lived — there are ~11M empty blocks before the contract existed.
+// Start at the deployment block and page through in chunks the RPC handles
+// comfortably (≈1M blocks resolves in ~1s).
+const DEPLOY_BLOCK = BigInt(
+  (DEPLOYMENT as { deployBlock?: number }).deployBlock ?? 0,
+);
+const LOG_CHUNK = 1_000_000n;
+
+type PublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
+
+async function getLogsChunked(
+  client: PublicClient,
+  event: AbiEvent,
+  args?: Record<string, unknown>,
+): Promise<Log[]> {
+  const latest = await client.getBlockNumber();
+  const all: Log[] = [];
+  for (let from = DEPLOY_BLOCK; from <= latest; from += LOG_CHUNK) {
+    const to = from + LOG_CHUNK - 1n > latest ? latest : from + LOG_CHUNK - 1n;
+    const logs = await client.getLogs({
+      address: CONTRACT_ADDRESS,
+      event,
+      args,
+      fromBlock: from,
+      toBlock: to,
+    } as Parameters<PublicClient["getLogs"]>[0]);
+    all.push(...(logs as Log[]));
+  }
+  return all;
+}
 
 /**
- * Pulls all DonationReceived events for the contract (or a single campaign).
- * Caldera RPC supports getLogs since the chain is short — fine for an MVP.
+ * Pulls all DonationReceived events for the contract (or a single campaign),
+ * paging from the deployment block through to head in RPC-friendly chunks.
  */
 export function useDonationEvents(campaignId?: bigint) {
   const client = usePublicClient();
@@ -47,13 +78,11 @@ export function useDonationEvents(campaignId?: bigint) {
 
     async function fetchLogs() {
       try {
-        const logs = (await client!.getLogs({
-          address: CONTRACT_ADDRESS,
-          event: DONATION_EVENT,
-          args: campaignId !== undefined ? { campaignId } : undefined,
-          fromBlock: FROM_BLOCK_FALLBACK,
-          toBlock: "latest",
-        })) as Log<bigint, number, false, typeof DONATION_EVENT>[];
+        const logs = (await getLogsChunked(
+          client!,
+          DONATION_EVENT,
+          campaignId !== undefined ? { campaignId } : undefined,
+        )) as Log<bigint, number, false, typeof DONATION_EVENT>[];
 
         const parsed: DonationEvent[] = logs.map((l) => ({
           campaignId: l.args.campaignId as bigint,
@@ -95,12 +124,8 @@ export function useCampaignsByBeneficiary(beneficiary?: `0x${string}`) {
 
     async function fetchLogs() {
       try {
-        const logs = (await client!.getLogs({
-          address: CONTRACT_ADDRESS,
-          event: CAMPAIGN_CREATED_EVENT,
-          args: { beneficiary },
-          fromBlock: FROM_BLOCK_FALLBACK,
-          toBlock: "latest",
+        const logs = (await getLogsChunked(client!, CAMPAIGN_CREATED_EVENT, {
+          beneficiary,
         })) as Log<bigint, number, false, typeof CAMPAIGN_CREATED_EVENT>[];
 
         const parsed: CampaignCreatedEvent[] = logs.map((l) => ({

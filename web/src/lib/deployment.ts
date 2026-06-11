@@ -7,5 +7,6 @@ export const DEPLOYMENT = {
   "feeRecipient": "0xF0071AFE9ca99eB21cDDAb933837e6E280BDCB12",
   "platformFeeBps": 200,
   "txHash": "0xd3ecebb6f1dc4d49637c71661af475e272f57497fb3ae30806657c6fa9ad4702",
+  "deployBlock": 10917328,
   "deployedAt": "2026-05-21T16:53:21.975Z"
 } as const;
